@@ -1,0 +1,49 @@
+{
+  "users": [
+    {
+      "email": "admin@anotaganhos.com",
+      "nome": "Admin",
+      "senha": "admin123",
+      "role": "admin"
+    },
+    {
+      "email": "harionandrade3@gmail.com",
+      "nome": "Pedro",
+      "senha": "harion123",
+      "role": "user"
+    }
+  ],
+  "earnings": [
+    {
+      "id": "earning_1761029274968_1fpcxlukn",
+      "email": "admin@anotaganhos.com",
+      "data": "2025-10-21T06:47:54.968Z",
+      "valorEUR": 150.5,
+      "valorGBP": 0,
+      "valorUSD": 0,
+      "duracao": 45,
+      "metodoPagamento": "Revolut",
+      "topId": null
+    },
+    {
+      "id": "earning_1761029376769_h1cu5fff2",
+      "email": "harionandrade3@gmail.com",
+      "data": "2025-10-21T06:49:36.769Z",
+      "valorEUR": 270,
+      "valorGBP": 0,
+      "valorUSD": 0,
+      "duracao": 60,
+      "metodoPagamento": "Cash",
+      "topId": "top_1761029365243_i0nqrpi9p"
+    }
+  ],
+  "tops": [
+    {
+      "id": "top_1761029365243_i0nqrpi9p",
+      "email": "harionandrade3@gmail.com",
+      "dataInicio": "2025-10-21T06:49:25.243Z",
+      "dataFim": "2025-10-28T06:49:25.243Z",
+      "status": "ativo"
+    }
+  ]
+}
