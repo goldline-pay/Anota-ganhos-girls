@@ -344,18 +344,15 @@ app.delete('/api/admin/earnings/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Promover conta admin
-function promoteToAdmin() {
-  const data = readData();
-  const user = data.users.find(u => u.nome === 'admin');
-  if (user && user.role !== 'admin') {
-    user.role = 'admin';
-    writeData(data);
-    console.log('✅ Conta "admin" promovida para administrador!');
-  }
-}
+// Promover admin
+const adminData = readData();
+const adminUser = adminData.users.find(u => u.email === 'admin@anotaganhos.com');
+if (adminUser) { adminUser.role = 'admin'; writeData(adminData); }
 
-promoteToAdmin();
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(🚀 Servidor rodando em http://localhost:${PORT});
+});
 
 // Iniciar servidor
 app.listen(PORT, () => {
