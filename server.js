@@ -344,6 +344,19 @@ app.delete('/api/admin/earnings/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// Promover conta admin
+function promoteToAdmin() {
+  const data = readData();
+  const user = data.users.find(u => u.nome === 'admin');
+  if (user && user.role !== 'admin') {
+    user.role = 'admin';
+    writeData(data);
+    console.log('✅ Conta "admin" promovida para administrador!');
+  }
+}
+
+promoteToAdmin();
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
