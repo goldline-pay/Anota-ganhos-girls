@@ -1,0 +1,40 @@
+services:
+  # Banco de dados MySQL
+  - type: pserv
+    name: anota-ganhos-db
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.mysql
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 1
+
+  # Aplicação Node.js
+  - type: web
+    name: anota-ganhos-girls
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        fromService:
+          type: pserv
+          name: anota-ganhos-db
+          property: host
+      - key: DB_PORT
+        value: 3306
+      - key: DB_USER
+        value: root
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: anota_ganhos_girls
+

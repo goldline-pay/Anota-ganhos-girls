@@ -1,21 +1,20 @@
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mysql from 'mysql2/promise';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_aqui';
+const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_super_segura_aqui_2024';
 
 // Middleware
 app.use(cors());
@@ -81,7 +80,7 @@ const authenticateAdmin = (req, res, next) => {
       return res.status(403).json({ error: 'Token inválido' });
     }
     
-    // Verificar se é admin (Manus OAuth)
+    // Verificar se é admin
     if (user.role !== 'admin') {
       return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
     }
@@ -321,120 +320,40 @@ app.delete('/api/earnings/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ============ ADMIN - GERENCIAR USUÁRIOS ============
+// ============ ESTATÍSTICAS SEMANAIS ============
 
-// GET /api/admin/users - Listar todos os usuários (apenas admin)
-app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+// GET /api/stats/weekly - Obter estatísticas semanais
+app.get('/api/stats/weekly', authenticateToken, async (req, res) => {
   try {
     const conn = await pool.getConnection();
-    const [users] = await conn.query('SELECT id, email, name, role, createdAt, lastSignedIn FROM users');
-    conn.release();
-    res.json(users);
-  } catch (error) {
-    console.error('Erro ao listar usuários:', error);
-    res.status(500).json({ error: 'Erro ao listar usuários' });
-  }
-});
-
-// GET /api/admin/users/:userId/earnings - Listar anotações de um usuário (apenas admin)
-app.get('/api/admin/users/:userId/earnings', authenticateAdmin, async (req, res) => {
-  try {
-    const conn = await pool.getConnection();
-    const [earnings] = await conn.query(
-      'SELECT * FROM earnings WHERE userId = ? ORDER BY date DESC',
-      [req.params.userId]
-    );
-    conn.release();
-    res.json(earnings);
-  } catch (error) {
-    console.error('Erro ao listar anotações:', error);
-    res.status(500).json({ error: 'Erro ao listar anotações' });
-  }
-});
-
-// PUT /api/admin/earnings/:id - Editar anotação como admin
-app.put('/api/admin/earnings/:id', authenticateAdmin, async (req, res) => {
-  try {
-    const { gbpAmount, eurAmount, usdAmount, durationMinutes, description } = req.body;
-    const conn = await pool.getConnection();
-
-    const gbpCents = Math.round((gbpAmount || 0) * 100);
-    const eurCents = Math.round((eurAmount || 0) * 100);
-    const usdCents = Math.round((usdAmount || 0) * 100);
-
-    const [earnings] = await conn.query('SELECT userId, date FROM earnings WHERE id = ?', [req.params.id]);
-    if (earnings.length === 0) {
-      conn.release();
-      return res.status(404).json({ error: 'Anotação não encontrada' });
-    }
-
-    await conn.query(
-      'UPDATE earnings SET gbpAmount = ?, eurAmount = ?, usdAmount = ?, durationMinutes = ?, description = ? WHERE id = ?',
-      [gbpCents, eurCents, usdCents, durationMinutes, description || null, req.params.id]
-    );
-
-    // Atualizar estatísticas semanais
-    await updateWeeklyStats(conn, earnings[0].userId, earnings[0].date);
-
-    conn.release();
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro ao editar anotação:', error);
-    res.status(500).json({ error: 'Erro ao editar anotação' });
-  }
-});
-
-// ============ ESTATÍSTICAS ============
-
-// GET /api/stats/current-week - Estatísticas da semana atual
-app.get('/api/stats/current-week', authenticateToken, async (req, res) => {
-  try {
-    const conn = await pool.getConnection();
-
-    const weekStart = getWeekStart(new Date());
-
     const [stats] = await conn.query(
-      'SELECT * FROM weeklyStats WHERE userId = ? AND weekStartDate = ?',
-      [req.user.id, weekStart]
+      'SELECT * FROM weeklyStats WHERE userId = ? ORDER BY weekStartDate DESC LIMIT 10',
+      [req.user.id]
     );
-
     conn.release();
 
-    if (stats.length === 0) {
-      return res.json({
-        totalGbpAmount: 0,
-        totalEurAmount: 0,
-        totalUsdAmount: 0,
-        totalDurationMinutes: 0,
-        totalEarnings: 0,
-        weekStartDate: weekStart
-      });
-    }
+    const statsFormatted = stats.map(s => ({
+      ...s,
+      totalGbpAmount: s.totalGbpAmount / 100,
+      totalEurAmount: s.totalEurAmount / 100,
+      totalUsdAmount: s.totalUsdAmount / 100
+    }));
 
-    const stat = stats[0];
-    res.json({
-      totalGbpAmount: stat.totalGbpAmount / 100,
-      totalEurAmount: stat.totalEurAmount / 100,
-      totalUsdAmount: stat.totalUsdAmount / 100,
-      totalDurationMinutes: stat.totalDurationMinutes,
-      totalEarnings: stat.totalEarnings,
-      weekStartDate: stat.weekStartDate
-    });
+    res.json(statsFormatted);
   } catch (error) {
     console.error('Erro ao obter estatísticas:', error);
     res.status(500).json({ error: 'Erro ao obter estatísticas' });
   }
 });
 
-// ============ TOP DE 7 DIAS ============
+// ============ TOP PERIODS ============
 
-// POST /api/top/start - Iniciar um novo top de 7 dias
+// POST /api/top/start - Iniciar novo top
 app.post('/api/top/start', authenticateToken, async (req, res) => {
   try {
     const conn = await pool.getConnection();
 
-    // Verificar se já existe um top ativo
+    // Verificar se já existe top ativo
     const [activeTops] = await conn.query(
       'SELECT * FROM topPeriods WHERE userId = ? AND status = "active"',
       [req.user.id]
@@ -445,11 +364,11 @@ app.post('/api/top/start', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Já existe um top ativo' });
     }
 
-    const topId = `top_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date();
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() + 7);
-    endDate.setHours(0, 0, 0, 0);
+
+    const topId = `top_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     await conn.query(
       'INSERT INTO topPeriods (id, userId, startDate, endDate, currentDay, status) VALUES (?, ?, ?, ?, ?, ?)',
@@ -463,10 +382,6 @@ app.post('/api/top/start', authenticateToken, async (req, res) => {
       startDate: now,
       endDate: endDate,
       currentDay: 1,
-      totalGbpAmount: 0,
-      totalEurAmount: 0,
-      totalUsdAmount: 0,
-      totalDurationMinutes: 0,
       status: 'active'
     });
   } catch (error) {
@@ -475,29 +390,29 @@ app.post('/api/top/start', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/top/set-day - Definir o dia atual do top (1-7)
-app.put('/api/top/set-day', authenticateToken, async (req, res) => {
+// POST /api/top/set-day - Definir dia atual do top
+app.post('/api/top/set-day', authenticateToken, async (req, res) => {
   try {
     const { day } = req.body;
-    const dayNumber = parseInt(day);
 
-    if (!dayNumber || dayNumber < 1 || dayNumber > 7) {
-      return res.status(400).json({ error: 'O dia deve ser um número entre 1 e 7' });
+    if (!day || day < 1 || day > 7) {
+      return res.status(400).json({ error: 'Dia deve estar entre 1 e 7' });
     }
 
     const conn = await pool.getConnection();
 
-    // Encontrar o top ativo
+    // Buscar top ativo
     const [activeTops] = await conn.query(
-      'SELECT id FROM topPeriods WHERE userId = ? AND status = "active" ORDER BY createdAt DESC LIMIT 1',
+      'SELECT * FROM topPeriods WHERE userId = ? AND status = "active" ORDER BY createdAt DESC LIMIT 1',
       [req.user.id]
     );
 
     if (activeTops.length === 0) {
       conn.release();
-      return res.status(404).json({ error: 'Nenhum top ativo encontrado' });
+      return res.status(400).json({ error: 'Nenhum top ativo encontrado' });
     }
 
+    const dayNumber = parseInt(day);
     const topId = activeTops[0].id;
 
     // Atualizar o dia atual
@@ -603,18 +518,106 @@ app.get('/api/top/current', authenticateToken, async (req, res) => {
   }
 });
 
+// ============ ADMIN ROUTES ============
+
+// GET /api/admin/users - Listar todos os usuários (apenas admin)
+app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+  try {
+    const conn = await pool.getConnection();
+    const [users] = await conn.query('SELECT id, email, name, role, createdAt, lastSignedIn FROM users ORDER BY createdAt DESC');
+    conn.release();
+    res.json(users);
+  } catch (error) {
+    console.error('Erro ao listar usuários:', error);
+    res.status(500).json({ error: 'Erro ao listar usuários' });
+  }
+});
+
+// GET /api/admin/earnings/:userId - Listar anotações de um usuário (apenas admin)
+app.get('/api/admin/earnings/:userId', authenticateAdmin, async (req, res) => {
+  try {
+    const conn = await pool.getConnection();
+    const [earnings] = await conn.query(
+      'SELECT * FROM earnings WHERE userId = ? ORDER BY date DESC',
+      [req.params.userId]
+    );
+    conn.release();
+    res.json(earnings);
+  } catch (error) {
+    console.error('Erro ao listar anotações do usuário:', error);
+    res.status(500).json({ error: 'Erro ao listar anotações do usuário' });
+  }
+});
+
+// PUT /api/admin/earnings/:id - Editar anotação de qualquer usuário (apenas admin)
+app.put('/api/admin/earnings/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { amount, currency, durationMinutes, description, paymentMethod } = req.body;
+    const conn = await pool.getConnection();
+
+    const [earnings] = await conn.query('SELECT * FROM earnings WHERE id = ?', [req.params.id]);
+    if (earnings.length === 0) {
+      conn.release();
+      return res.status(404).json({ error: 'Anotação não encontrada' });
+    }
+
+    const amountCents = Math.round((amount || 0) * 100);
+    let gbpCents = 0, eurCents = 0, usdCents = 0;
+    if (currency === 'GBP') gbpCents = amountCents;
+    else if (currency === 'EUR') eurCents = amountCents;
+    else if (currency === 'USD') usdCents = amountCents;
+
+    await conn.query(
+      'UPDATE earnings SET gbpAmount = ?, eurAmount = ?, usdAmount = ?, durationMinutes = ?, description = ?, paymentMethod = ? WHERE id = ?',
+      [gbpCents, eurCents, usdCents, durationMinutes, description || null, paymentMethod || null, req.params.id]
+    );
+
+    const earning = earnings[0];
+    await updateWeeklyStats(conn, earning.userId, earning.date);
+
+    conn.release();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao editar anotação:', error);
+    res.status(500).json({ error: 'Erro ao editar anotação' });
+  }
+});
+
+// DELETE /api/admin/earnings/:id - Deletar anotação de qualquer usuário (apenas admin)
+app.delete('/api/admin/earnings/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const conn = await pool.getConnection();
+
+    const [earnings] = await conn.query('SELECT * FROM earnings WHERE id = ?', [req.params.id]);
+    if (earnings.length === 0) {
+      conn.release();
+      return res.status(404).json({ error: 'Anotação não encontrada' });
+    }
+
+    const earning = earnings[0];
+
+    await conn.query('DELETE FROM earnings WHERE id = ?', [req.params.id]);
+    await updateWeeklyStats(conn, earning.userId, earning.date);
+
+    conn.release();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao deletar anotação:', error);
+    res.status(500).json({ error: 'Erro ao deletar anotação' });
+  }
+});
+
 // ============ FUNÇÕES AUXILIARES ============
 
-
-
-// ============ FUNÇÕES AUXILIARES ============
 // Função para obter o início da semana (segunda-feira)
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   const weekStart = new Date(d.setDate(diff));
-  weekStart.setHours(0, 0, 0, 0); // Zera a hora para evitar problemas de fuso horário
+  weekStart.setHours(0, 0, 0, 0);
   return weekStart;
 }
 
@@ -706,9 +709,10 @@ async function initializeDatabase() {
         durationMinutes INT NOT NULL,
         description TEXT,
         date DATE NOT NULL,
+        paymentMethod VARCHAR(50),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (userId) REFERENCES users(id)
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 
@@ -724,7 +728,7 @@ async function initializeDatabase() {
         totalDurationMinutes INT DEFAULT 0,
         totalEarnings INT DEFAULT 0,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (userId) REFERENCES users(id),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE KEY (userId, weekStartDate)
       )
     `);
@@ -741,379 +745,46 @@ async function initializeDatabase() {
         totalEurAmount INT DEFAULT 0,
         totalUsdAmount INT DEFAULT 0,
         totalDurationMinutes INT DEFAULT 0,
-        status ENUM('active', 'completed') DEFAULT 'active',
+        status ENUM('active', 'stopped', 'completed') DEFAULT 'active',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (userId) REFERENCES users(id)
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
+
+    // Criar usuário admin padrão se não existir
+    const [adminUsers] = await conn.query('SELECT id FROM users WHERE email = ?', ['admin@anotaganhos.com']);
+    
+    if (adminUsers.length === 0) {
+      const adminPassword = await bcryptjs.hash('Admin123!', 10);
+      const adminId = `admin_${Date.now()}`;
+      
+      await conn.query(
+        'INSERT INTO users (id, email, name, passwordHash, role) VALUES (?, ?, ?, ?, ?)',
+        [adminId, 'admin@anotaganhos.com', 'Admin', adminPassword, 'admin']
+      );
+      
+      console.log('✅ Usuário admin criado: admin@anotaganhos.com / Admin123!');
+    }
 
     conn.release();
     console.log('✅ Banco de dados inicializado com sucesso!');
   } catch (error) {
     console.error('❌ Erro ao inicializar banco de dados:', error);
+    throw error;
   }
 }
 
 // ============ INICIAR SERVIDOR ============
 
 app.listen(PORT, async () => {
-  await initializeDatabase();
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-});
-
-
-const __dirname = dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-const DATA_FILE = '/data/data.json';
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
-
-// Funções auxiliares
-function readData() {
   try {
-    const data = readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
+    await initializeDatabase();
+    console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+    console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
   } catch (error) {
-    return { users: [], earnings: [], tops: [] };
+    console.error('❌ Erro ao iniciar servidor:', error);
+    process.exit(1);
   }
-}
-
-function writeData(data) {
-  writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-function generateId(prefix) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// ===== ROTAS DE AUTENTICAÇÃO =====
-
-app.post('/api/auth/register', (req, res) => {
-  const { email, nome, senha } = req.body;
-  
-  if (!email || !nome || !senha) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-  }
-  
-  const data = readData();
-  
-  // Verificar se email já existe
-  if (data.users.find(u => u.email === email)) {
-    return res.status(400).json({ error: 'Email já cadastrado' });
-  }
-  
-  // Criar novo usuário
-  const newUser = {
-    email,
-    nome,
-    senha, // Em produção, use hash!
-    role: 'user'
-  };
-  
-  data.users.push(newUser);
-  writeData(data);
-  
-  res.json({ success: true, user: { email, nome, role: 'user' } });
-});
-
-app.post('/api/auth/login', (req, res) => {
-  const { email, senha } = req.body;
-  
-  if (!email || !senha) {
-    return res.status(400).json({ error: 'Email e senha são obrigatórios' });
-  }
-  
-  const data = readData();
-  const user = data.users.find(u => (u.email === email || u.nome === email) && u.senha === senha);
-  
-  if (!user) {
-    return res.status(401).json({ error: 'Email/nome ou senha inválidos' });
-  }
-  
-  res.json({ success: true, user: { email: user.email, nome: user.nome, role: user.role } });
-});
-
-// ===== ROTAS DE EARNINGS =====
-
-app.get('/api/earnings', (req, res) => {
-  const { email } = req.query;
-  
-  if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório' });
-  }
-  
-  const data = readData();
-  const userEarnings = data.earnings.filter(e => e.email === email);
-  
-  res.json(userEarnings);
-});
-
-app.post('/api/earnings', (req, res) => {
-  const { email, valor, moeda, duracao, metodoPagamento, topId } = req.body;
-  
-  if (!email || !valor || !moeda || !duracao || !metodoPagamento) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-  }
-  
-  const data = readData();
-  
-  const newEarning = {
-    id: generateId('earning'),
-    email,
-    data: new Date().toISOString(),
-    valorEUR: moeda === 'EUR' ? parseFloat(valor) : 0,
-    valorGBP: moeda === 'GBP' ? parseFloat(valor) : 0,
-    valorUSD: moeda === 'USD' ? parseFloat(valor) : 0,
-    duracao: parseInt(duracao),
-    metodoPagamento,
-    topId: topId || null
-  };
-  
-  data.earnings.push(newEarning);
-  writeData(data);
-  
-  res.json({ success: true, earning: newEarning });
-});
-
-app.delete('/api/earnings/:id', (req, res) => {
-  const { id } = req.params;
-  const { email } = req.query;
-  
-  const data = readData();
-  const index = data.earnings.findIndex(e => e.id === id && e.email === email);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Anotação não encontrada' });
-  }
-  
-  data.earnings.splice(index, 1);
-  writeData(data);
-  
-  res.json({ success: true });
-});
-
-// ===== ROTAS DE TOPS =====
-
-app.get('/api/tops/current', (req, res) => {
-  const { email } = req.query;
-  
-  if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório' });
-  }
-  
-  const data = readData();
-  const activeTop = data.tops.find(t => t.email === email && t.status === 'ativo');
-  
-  if (!activeTop) {
-    return res.json(null);
-  }
-  
-  // Calcular dia atual e tempo restante
-  const startDate = new Date(activeTop.dataInicio);
-  const now = new Date();
-  const diffMs = now - startDate;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const currentDay = Math.min(diffDays + 1, 7);
-  
-  // Calcular totais
-  const topEarnings = data.earnings.filter(e => e.topId === activeTop.id);
-  const totalEUR = topEarnings.reduce((sum, e) => sum + e.valorEUR, 0);
-  const totalGBP = topEarnings.reduce((sum, e) => sum + e.valorGBP, 0);
-  const totalUSD = topEarnings.reduce((sum, e) => sum + e.valorUSD, 0);
-  
-  res.json({
-    ...activeTop,
-    currentDay,
-    totalEUR,
-    totalGBP,
-    totalUSD,
-    earnings: topEarnings
-  });
-});
-
-app.post('/api/tops/start', (req, res) => {
-  const { email } = req.body;
-  
-  if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório' });
-  }
-  
-  const data = readData();
-  
-  // Verificar se já tem top ativo
-  const hasActiveTop = data.tops.find(t => t.email === email && t.status === 'ativo');
-  if (hasActiveTop) {
-    return res.status(400).json({ error: 'Já existe um top ativo' });
-  }
-  
-  const now = new Date();
-  const endDate = new Date(now);
-  endDate.setDate(endDate.getDate() + 7);
-  
-  const newTop = {
-    id: generateId('top'),
-    email,
-    dataInicio: now.toISOString(),
-    dataFim: endDate.toISOString(),
-    status: 'ativo'
-  };
-  
-  data.tops.push(newTop);
-  writeData(data);
-  
-  res.json({ success: true, top: newTop });
-});
-
-app.post('/api/tops/stop', (req, res) => {
-  const { email, topId } = req.body;
-  
-  if (!email || !topId) {
-    return res.status(400).json({ error: 'Email e topId são obrigatórios' });
-  }
-  
-  const data = readData();
-  const top = data.tops.find(t => t.id === topId && t.email === email);
-  
-  if (!top) {
-    return res.status(404).json({ error: 'Top não encontrado' });
-  }
-  
-  top.status = 'parado';
-  writeData(data);
-  
-  res.json({ success: true });
-});
-
-app.get('/api/tops/history', (req, res) => {
-  const { email } = req.query;
-  
-  if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório' });
-  }
-  
-  const data = readData();
-  const userTops = data.tops.filter(t => t.email === email);
-  
-  // Calcular totais para cada top
-  const topsWithTotals = userTops.map(top => {
-    const topEarnings = data.earnings.filter(e => e.topId === top.id);
-    const totalEUR = topEarnings.reduce((sum, e) => sum + e.valorEUR, 0);
-    const totalGBP = topEarnings.reduce((sum, e) => sum + e.valorGBP, 0);
-    const totalUSD = topEarnings.reduce((sum, e) => sum + e.valorUSD, 0);
-    
-    return {
-      ...top,
-      totalEUR,
-      totalGBP,
-      totalUSD
-    };
-  });
-  
-  res.json(topsWithTotals);
-});
-
-// ===== ROTAS ADMIN =====
-
-app.get('/api/admin/users', (req, res) => {
-  const { email } = req.query;
-  
-  const data = readData();
-  const user = data.users.find(u => u.email === email);
-  
-  if (!user || user.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
-  
-  // Retornar todos os usuários sem a senha
-  const users = data.users.map(u => ({ email: u.email, nome: u.nome, role: u.role }));
-  res.json(users);
-});
-
-app.get('/api/admin/earnings/:userEmail', (req, res) => {
-  const { userEmail } = req.params;
-  const { adminEmail } = req.query;
-  
-  const data = readData();
-  const admin = data.users.find(u => u.email === adminEmail);
-  
-  if (!admin || admin.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
-  
-  const userEarnings = data.earnings.filter(e => e.email === userEmail);
-  res.json(userEarnings);
-});
-
-app.put('/api/admin/earnings/:id', (req, res) => {
-  const { id } = req.params;
-  const { adminEmail, valor, moeda, duracao, metodoPagamento } = req.body;
-  
-  const data = readData();
-  const admin = data.users.find(u => u.email === adminEmail);
-  
-  if (!admin || admin.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
-  
-  const earning = data.earnings.find(e => e.id === id);
-  
-  if (!earning) {
-    return res.status(404).json({ error: 'Anotação não encontrada' });
-  }
-  
-  // Atualizar campos
-  earning.valorEUR = moeda === 'EUR' ? parseFloat(valor) : 0;
-  earning.valorGBP = moeda === 'GBP' ? parseFloat(valor) : 0;
-  earning.valorUSD = moeda === 'USD' ? parseFloat(valor) : 0;
-  earning.duracao = parseInt(duracao);
-  earning.metodoPagamento = metodoPagamento;
-  
-  writeData(data);
-  
-  res.json({ success: true, earning });
-});
-
-app.delete('/api/admin/earnings/:id', (req, res) => {
-  const { id } = req.params;
-  const { adminEmail } = req.query;
-  
-  const data = readData();
-  const admin = data.users.find(u => u.email === adminEmail);
-  
-  if (!admin || admin.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
-  
-  const index = data.earnings.findIndex(e => e.id === id);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Anotação não encontrada' });
-  }
-  
-  data.earnings.splice(index, 1);
-  writeData(data);
-  
-  res.json({ success: true });
-});
-
-// Promover admin
-const adminData = readData();
-const adminUser = adminData.users.find(u => u.email === 'admin@anotaganhos.com');
-if (adminUser) { adminUser.role = 'admin'; writeData(adminData); }
-
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(🚀 Servidor rodando em http://localhost:${PORT});
-});
-
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
 
