@@ -34,12 +34,18 @@ export default function Home() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
+    const savedRole = localStorage.getItem("userRole");
+    const savedName = localStorage.getItem("userName");
     if (savedToken) setToken(savedToken);
+    if (savedRole) setUserRole(savedRole);
+    if (savedName) setUserName(savedName);
   }, []);
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userRole", data.role);
+      localStorage.setItem("userName", data.name);
       setToken(data.token);
       setUserRole(data.role);
       setUserName(data.name);
@@ -53,6 +59,8 @@ export default function Home() {
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userRole", data.role);
+      localStorage.setItem("userName", data.name);
       setToken(data.token);
       setUserRole(data.role);
       setUserName(data.name);
@@ -177,7 +185,11 @@ export default function Home() {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userName");
     setToken(null);
+    setUserRole(null);
+    setUserName(null);
     toast.success("Logout realizado");
   };
 

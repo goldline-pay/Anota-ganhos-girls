@@ -163,3 +163,6 @@
 
 ## Personalização
 - [x] Adicionar nome do usuário na página inicial para personalização
+
+## Bug
+- [x] Link Admin não está aparecendo no dashboard para conta admin - corrigido salvando role no localStorage
