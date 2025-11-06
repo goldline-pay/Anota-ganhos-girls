@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { APP_TITLE } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
@@ -21,6 +22,14 @@ export default function Home() {
   const [currency, setCurrency] = useState("EUR");
   const [duration, setDuration] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+  
+  const [editingEarning, setEditingEarning] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editCurrency, setEditCurrency] = useState("EUR");
+  const [editDuration, setEditDuration] = useState("");
+  const [editPaymentMethod, setEditPaymentMethod] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
@@ -31,10 +40,11 @@ export default function Home() {
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       setToken(data.token);
+      setUserRole(data.role);
       toast.success("Login realizado!");
     },
     onError: (error: any) => {
-      toast.error(error.message);
+      toast.error(error.message || "Erro no login");
     },
   });
 
@@ -42,10 +52,11 @@ export default function Home() {
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       setToken(data.token);
-      toast.success("Conta criada!");
+      setUserRole(data.role);
+      toast.success("Conta criada com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(error.message);
+      toast.error(error.message || "Erro ao criar conta");
     },
   });
 
@@ -74,6 +85,17 @@ export default function Home() {
     onSuccess: () => {
       toast.success("Ganho removido!");
       earningsQuery.refetch();
+    },
+  });
+
+  const updateMutation = trpc.earnings.update.useMutation({
+    onSuccess: () => {
+      toast.success("Ganho atualizado!");
+      setEditingEarning(null);
+      earningsQuery.refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao atualizar");
     },
   });
 
@@ -122,6 +144,31 @@ export default function Home() {
       duration: parseInt(duration),
       paymentMethod: paymentMethod as any,
       date: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const handleEdit = (earning: any) => {
+    setEditingEarning(earning);
+    setEditAmount((earning.amount / 100).toString());
+    setEditCurrency(earning.currency);
+    setEditDuration(earning.duration.toString());
+    setEditPaymentMethod(earning.paymentMethod);
+    setEditDate(earning.date);
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editAmount || !editDuration || !editPaymentMethod || !editDate) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    updateMutation.mutate({
+      id: editingEarning.id,
+      amount: parseFloat(editAmount),
+      currency: editCurrency as "GBP" | "EUR" | "USD",
+      duration: parseInt(editDuration),
+      paymentMethod: editPaymentMethod as any,
+      date: editDate,
     });
   };
 
@@ -239,6 +286,13 @@ export default function Home() {
                 📊 Histórico
               </Button>
             </Link>
+            {userRole === "admin" && (
+              <Link href="/admin">
+                <Button variant="outline" size="sm" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                  👑 Admin
+                </Button>
+              </Link>
+            )}
             <Button variant="outline" size="sm" onClick={logout} className="border-gray-300">
               Sair
             </Button>
@@ -387,20 +441,110 @@ export default function Home() {
                       {e.duration}min • {e.paymentMethod} • {e.date}
                     </p>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate({ id: e.id })}
-                    disabled={deleteMutation.isPending}
-                    className="bg-red-500 hover:bg-red-600"
-                  >
-                    Remover
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(e)}
+                      className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate({ id: e.id })}
+                      disabled={deleteMutation.isPending}
+                      className="bg-red-500 hover:bg-red-600"
+                    >
+                      Remover
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </Card>
+
+        {/* Dialog de Edição */}
+        <Dialog open={!!editingEarning} onOpenChange={() => setEditingEarning(null)}>
+          <DialogContent className="bg-white">
+            <DialogHeader>
+              <DialogTitle>Editar Ganho</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Valor</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Moeda</Label>
+                  <Select value={editCurrency} onValueChange={setEditCurrency}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Duração (min)</Label>
+                  <Input
+                    type="number"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <Select value={editPaymentMethod} onValueChange={setEditPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Revolut">Revolut</SelectItem>
+                      <SelectItem value="PayPal">PayPal</SelectItem>
+                      <SelectItem value="Wise">Wise</SelectItem>
+                      <SelectItem value="AIB">AIB</SelectItem>
+                      <SelectItem value="Crypto">Crypto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setEditingEarning(null)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="bg-gradient-to-r from-pink-500 to-purple-600" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

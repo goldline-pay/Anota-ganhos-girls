@@ -155,3 +155,8 @@
 - [x] Adicionar gráfico de ganhos totais por dia no painel admin
 - [x] Usar biblioteca de gráficos (Recharts)
 - [x] Mostrar totais consolidados por dia
+
+## Novas Melhorias
+- [x] Adicionar botão "Editar" em cada ganho na seção "Ganhos Recentes" do dashboard
+- [x] Implementar modal de edição para usuários normais editarem seus próprios ganhos
+- [x] Adicionar link/botão "Painel Admin" visível apenas para admin no dashboard
