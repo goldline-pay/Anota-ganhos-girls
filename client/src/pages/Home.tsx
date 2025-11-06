@@ -30,6 +30,7 @@ export default function Home() {
   const [editPaymentMethod, setEditPaymentMethod] = useState("");
   const [editDate, setEditDate] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
@@ -41,6 +42,7 @@ export default function Home() {
       localStorage.setItem("token", data.token);
       setToken(data.token);
       setUserRole(data.role);
+      setUserName(data.name);
       toast.success("Login realizado!");
     },
     onError: (error: any) => {
@@ -53,6 +55,7 @@ export default function Home() {
       localStorage.setItem("token", data.token);
       setToken(data.token);
       setUserRole(data.role);
+      setUserName(data.name);
       toast.success("Conta criada com sucesso!");
     },
     onError: (error: any) => {
@@ -277,9 +280,16 @@ export default function Home() {
       
       <div className="max-w-4xl mx-auto relative z-10">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
-            💰 {APP_TITLE}
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+              💰 {APP_TITLE}
+            </h1>
+            {userName && (
+              <p className="text-gray-700 mt-1 text-lg">
+                Olá, <span className="font-semibold text-pink-600">{userName}</span>! 💖
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Link href="/history">
               <Button variant="outline" size="sm" className="border-pink-300 text-pink-700 hover:bg-pink-50">

@@ -160,3 +160,6 @@
 - [x] Adicionar botão "Editar" em cada ganho na seção "Ganhos Recentes" do dashboard
 - [x] Implementar modal de edição para usuários normais editarem seus próprios ganhos
 - [x] Adicionar link/botão "Painel Admin" visível apenas para admin no dashboard
+
+## Personalização
+- [x] Adicionar nome do usuário na página inicial para personalização
