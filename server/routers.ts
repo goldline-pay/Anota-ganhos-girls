@@ -1,36 +1,101 @@
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import { TRPCError } from "@trpc/server";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "secret-key-change-in-production";
+
+// Procedure protegido que requer autenticação
+const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const authHeader = ctx.req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+  }
+
+  const token = authHeader.substring(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+    const user = await db.getUserByEmail(payload.email);
+    if (!user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
+    }
+    return next({ ctx: { ...ctx, user } });
+  } catch (error) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid token" });
+  }
+});
 
 export const appRouter = router({
   system: systemRouter,
+  
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true } as const;
-    }),
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        name: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await db.getUserByEmail(input.email);
+        if (existing) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Email já cadastrado" });
+        }
+        
+        await db.createUser(input.email, input.password, input.name);
+        const user = await db.getUserByEmail(input.email);
+        
+        const token = jwt.sign(
+          { userId: user!.id, email: user!.email },
+          JWT_SECRET,
+          { expiresIn: "30d" }
+        );
+        
+        return { token, user: { id: user!.id, email: user!.email, name: user!.name } };
+      }),
+
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await db.getUserByEmail(input.email);
+        if (!user) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Email ou senha incorretos" });
+        }
+        
+        const valid = await db.verifyPassword(input.password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Email ou senha incorretos" });
+        }
+        
+        const token = jwt.sign(
+          { userId: user.id, email: user.email },
+          JWT_SECRET,
+          { expiresIn: "30d" }
+        );
+        
+        return { token, user: { id: user.id, email: user.email, name: user.name } };
+      }),
+
+    me: protectedProcedure.query(({ ctx }) => ctx.user),
   }),
 
   earnings: router({
     create: protectedProcedure
-      .input(
-        z.object({
-          amount: z.number().positive(),
-          currency: z.enum(["GBP", "EUR", "USD"]),
-          duration: z.number().positive(),
-          paymentMethod: z.enum(["Cash", "Revolut", "PayPal", "Wise", "AIB", "Crypto"]),
-          date: z.string(),
-        })
-      )
+      .input(z.object({
+        amount: z.number().positive(),
+        currency: z.enum(["GBP", "EUR", "USD"]),
+        duration: z.number().positive(),
+        paymentMethod: z.enum(["Cash", "Revolut", "PayPal", "Wise", "AIB", "Crypto"]),
+        date: z.string(),
+      }))
       .mutation(async ({ ctx, input }) => {
         return await db.createEarning({
           userId: ctx.user.id,
-          amount: Math.round(input.amount * 100), // converter para centavos
+          amount: Math.round(input.amount * 100),
           currency: input.currency,
           duration: input.duration,
           paymentMethod: input.paymentMethod,
@@ -40,7 +105,6 @@ export const appRouter = router({
 
     list: protectedProcedure.query(async ({ ctx }) => {
       const earnings = await db.getUserEarnings(ctx.user.id);
-      // Converter centavos de volta para reais
       return earnings.map(e => ({
         ...e,
         amount: e.amount / 100,
@@ -49,7 +113,7 @@ export const appRouter = router({
 
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         await db.deleteEarning(input.id);
         return { success: true };
       }),

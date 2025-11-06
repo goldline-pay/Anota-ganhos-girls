@@ -117,3 +117,10 @@
 
 ## Bugs
 - [x] Corrigir erro de autenticação - problema identificado: tRPC não está processando corretamente as mutations de login/register
+
+## Nova Solicitação
+- [x] Implementar sistema de autenticação próprio com email/senha (sem OAuth Manus)
+- [x] Criar página de registro
+- [x] Criar página de login
+- [x] Armazenar senhas com hash bcrypt
+- [x] Usar JWT para sessões

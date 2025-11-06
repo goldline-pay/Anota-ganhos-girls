@@ -1,23 +1,57 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { APP_TITLE, getLoginUrl } from "@/const";
+import { APP_TITLE } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  const [isLogin, setIsLogin] = useState(true);
+  
+  // Form states
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  
+  // Earnings form
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [duration, setDuration] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    if (savedToken) setToken(savedToken);
+  }, []);
+
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: (data) => {
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
+      toast.success("Login realizado!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const registerMutation = trpc.auth.register.useMutation({
+    onSuccess: (data) => {
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
+      toast.success("Conta criada!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
   const earningsQuery = trpc.earnings.list.useQuery(undefined, {
-    enabled: !!user,
+    enabled: !!token,
   });
 
   const createMutation = trpc.earnings.create.useMutation({
@@ -40,6 +74,19 @@ export default function Home() {
     },
   });
 
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLogin) {
+      loginMutation.mutate({ email, password });
+    } else {
+      if (!name) {
+        toast.error("Preencha o nome");
+        return;
+      }
+      registerMutation.mutate({ email, password, name });
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !duration || !paymentMethod) {
@@ -55,18 +102,65 @@ export default function Home() {
     });
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
-  }
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    toast.success("Logout realizado");
+  };
 
-  if (!user) {
+  if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="p-8 max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-4 text-center">💰 {APP_TITLE}</h1>
-          <p className="text-center mb-6 text-gray-600">Faça login para começar a anotar seus ganhos</p>
-          <Button onClick={() => window.location.href = getLoginUrl()} className="w-full">
-            Entrar com Manus
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="p-6 max-w-md w-full">
+          <h1 className="text-2xl font-bold mb-6 text-center">💰 {APP_TITLE}</h1>
+          
+          <form onSubmit={handleAuth} className="space-y-4">
+            {!isLogin && (
+              <div>
+                <Label>Nome</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome"
+                />
+              </div>
+            )}
+            
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+              />
+            </div>
+            
+            <div>
+              <Label>Senha</Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loginMutation.isPending || registerMutation.isPending}>
+              {loginMutation.isPending || registerMutation.isPending
+                ? "⏳ Processando..."
+                : isLogin
+                ? "Entrar"
+                : "Criar Conta"}
+            </Button>
+          </form>
+
+          <Button
+            variant="ghost"
+            className="w-full mt-4"
+            onClick={() => setIsLogin(!isLogin)}
+          >
+            {isLogin ? "Não tem conta? Criar conta" : "Já tem conta? Entrar"}
           </Button>
         </Card>
       </div>
@@ -84,7 +178,9 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">💰 {APP_TITLE}</h1>
-          <p className="text-sm text-gray-600">Olá, {user.name}</p>
+          <Button variant="outline" size="sm" onClick={logout}>
+            Sair
+          </Button>
         </div>
 
         <Card className="p-6 mb-6">
