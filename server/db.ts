@@ -135,3 +135,49 @@ export async function getTopEarnings(topId: number, userId: number) {
   return await db.select().from(earnings)
     .where(eq(earnings.userId, userId));
 }
+
+export async function updateEarning(id: number, userId: number, data: Partial<InsertEarning>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(earnings)
+    .set(data)
+    .where(eq(earnings.id, id));
+  
+  return { success: true };
+}
+
+// ============ ADMIN FUNCTIONS ============
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(users);
+}
+
+export async function getAllEarnings() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(earnings);
+}
+
+export async function updateEarningAdmin(id: number, data: Partial<InsertEarning>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(earnings)
+    .set(data)
+    .where(eq(earnings.id, id));
+  
+  return { success: true };
+}
+
+export async function deleteEarningAdmin(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(earnings).where(eq(earnings.id, id));
+  return { success: true };
+}

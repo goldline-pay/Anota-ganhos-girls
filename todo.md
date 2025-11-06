@@ -143,3 +143,10 @@
 - [x] Design feminino e sensual com cores adequadas
 - [x] Relatório semanal detalhado por dia
 - [x] Resumo consolidado por forma de pagamento
+
+## Novas Funcionalidades Solicitadas
+- [x] Adicionar botão de editar em cada ganho
+- [x] Implementar modal/formulário de edição de ganhos
+- [x] Criar painel admin para visualizar todas as contas
+- [x] Permitir admin editar ganhos de qualquer usuária
+- [x] Mostrar lista de todas as usuárias no painel admin

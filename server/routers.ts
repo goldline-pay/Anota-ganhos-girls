@@ -125,6 +125,26 @@ export const appRouter = router({
         await db.deleteEarning(input.id, ctx.user.id);
         return { success: true };
       }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        amount: z.number(),
+        currency: z.enum(["GBP", "EUR", "USD"]),
+        duration: z.number(),
+        paymentMethod: z.enum(["Cash", "Revolut", "PayPal", "Wise", "AIB", "Crypto"]),
+        date: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await db.updateEarning(input.id, ctx.user.id, {
+          amount: Math.round(input.amount * 100),
+          currency: input.currency,
+          duration: input.duration,
+          paymentMethod: input.paymentMethod,
+          date: input.date,
+        });
+        return { success: true };
+      }),
   }),
 
   tops: router({
@@ -176,6 +196,49 @@ export const appRouter = router({
       .input(z.object({ topId: z.number() }))
       .query(async ({ input, ctx }) => {
         return await db.getTopEarnings(input.topId, ctx.user.id);
+      }),
+  }),
+
+  admin: router({
+    // Listar todas as usuárias
+    listUsers: adminProcedure
+      .query(async () => {
+        return await db.getAllUsers();
+      }),
+
+    // Listar todos os ganhos de todas as usuárias
+    listAllEarnings: adminProcedure
+      .query(async () => {
+        return await db.getAllEarnings();
+      }),
+
+    // Editar ganho de qualquer usuária
+    updateEarning: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        amount: z.number(),
+        currency: z.enum(["GBP", "EUR", "USD"]),
+        duration: z.number(),
+        paymentMethod: z.enum(["Cash", "Revolut", "PayPal", "Wise", "AIB", "Crypto"]),
+        date: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateEarningAdmin(input.id, {
+          amount: Math.round(input.amount * 100),
+          currency: input.currency,
+          duration: input.duration,
+          paymentMethod: input.paymentMethod,
+          date: input.date,
+        });
+        return { success: true };
+      }),
+
+    // Deletar ganho de qualquer usuária
+    deleteEarning: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteEarningAdmin(input.id);
+        return { success: true };
       }),
   }),
 });
