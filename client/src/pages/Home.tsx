@@ -16,6 +16,7 @@ export default function Home() {
   const [isLogin, setIsLogin] = useState(true);
   
   const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   
@@ -32,25 +33,30 @@ export default function Home() {
   const [editDate, setEditDate] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userNickname, setUserNickname] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedRole = localStorage.getItem("userRole");
     const savedName = localStorage.getItem("userName");
+    const savedNickname = localStorage.getItem("userNickname");
     if (savedToken) setToken(savedToken);
     if (savedRole) setUserRole(savedRole);
     if (savedName) setUserName(savedName);
+    if (savedNickname) setUserNickname(savedNickname);
   }, []);
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userRole", data.role);
-      localStorage.setItem("userName", data.name);
+      localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userNickname", data.user.nickname);
       setToken(data.token);
-      setUserRole(data.role);
-      setUserName(data.name);
+      setUserRole(data.user.role);
+      setUserName(data.user.name);
+      setUserNickname(data.user.nickname);
       toast.success("Login realizado!");
     },
     onError: (error: any) => {
@@ -61,11 +67,13 @@ export default function Home() {
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userRole", data.role);
-      localStorage.setItem("userName", data.name);
+      localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userNickname", data.user.nickname);
       setToken(data.token);
-      setUserRole(data.role);
-      setUserName(data.name);
+      setUserRole(data.user.role);
+      setUserName(data.user.name);
+      setUserNickname(data.user.nickname);
       toast.success("Conta criada com sucesso!");
     },
     onError: (error: any) => {
@@ -137,13 +145,13 @@ export default function Home() {
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLogin) {
-      loginMutation.mutate({ email, password });
+      loginMutation.mutate({ emailOrNickname: email, password });
     } else {
-      if (!name) {
-        toast.error("Preencha o nome");
+      if (!name || !nickname) {
+        toast.error("Preencha todos os campos");
         return;
       }
-      registerMutation.mutate({ email, password, name });
+      registerMutation.mutate({ email, nickname, password, name });
     }
   };
 
@@ -226,13 +234,25 @@ export default function Home() {
               </div>
             )}
             
+            {!isLogin && (
+              <div>
+                <Label className="text-gray-700">Nickname</Label>
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Seu nickname (mínimo 3 caracteres)"
+                  className="border-pink-200 focus:border-pink-400"
+                />
+              </div>
+            )}
+            
             <div>
-              <Label className="text-gray-700">Email</Label>
+              <Label className="text-gray-700">{isLogin ? "Email ou Nickname" : "Email"}</Label>
               <Input
-                type="email"
+                type={isLogin ? "text" : "email"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
+                placeholder={isLogin ? "email ou nickname" : "seu@email.com"}
                 className="border-pink-200 focus:border-pink-400"
               />
             </div>
@@ -309,9 +329,9 @@ export default function Home() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
               💰 {APP_TITLE}
             </h1>
-            {userName && (
+            {userNickname && (
               <p className="text-gray-700 mt-1 text-lg">
-                Olá, <span className="font-semibold text-pink-600">{userName}</span>! 💖
+                Olá, <span className="font-semibold text-pink-600">{userNickname}</span>! 💖
               </p>
             )}
           </div>

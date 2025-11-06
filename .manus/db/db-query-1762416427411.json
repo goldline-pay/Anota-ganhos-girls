@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO weekly_snapshots (userId, weekStart, weekEnd, totalGross, daysWorked, createdAt)\nSELECT \n  30001 as userId,\n  '2025-10-27' as weekStart,\n  '2025-11-03' as weekEnd,\n  SUM(amount) as totalGross,\n  COUNT(DISTINCT date) as daysWorked,\n  NOW() as createdAt\nFROM earnings\nWHERE userId = 30001 \n  AND date >= '2025-10-27' \n  AND date < '2025-11-03';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute INSERT INTO weekly_snapshots (userId, weekStart, weekEnd, totalGross, daysWorked, createdAt)\nSELECT \n  30001 as userId,\n  '2025-10-27' as weekStart,\n  '2025-11-03' as weekEnd,\n  SUM(amount) as totalGross,\n  COUNT(DISTINCT date) as daysWorked,\n  NOW() as createdAt\nFROM earnings\nWHERE userId = 30001 \n  AND date >= '2025-10-27' \n  AND date < '2025-11-03';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 63
+}

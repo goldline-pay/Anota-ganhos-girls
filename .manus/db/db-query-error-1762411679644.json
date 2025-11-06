@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE users ADD COLUMN nickname VARCHAR(50) NOT NULL UNIQUE AFTER email;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute ALTER TABLE users ADD COLUMN nickname VARCHAR(50) NOT NULL UNIQUE AFTER email;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 8200 (HY000) at line 1: unsupported add column 'nickname' constraint UNIQUE KEY when altering 'dvivK8BojaycCXiNf9BuUs.users'"
+  ]
+}

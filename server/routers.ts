@@ -42,16 +42,18 @@ export const appRouter = router({
     register: publicProcedure
       .input(z.object({
         email: z.string().email(),
+        nickname: z.string().min(3).max(50),
         password: z.string().min(6),
         name: z.string().min(1),
       }))
       .mutation(async ({ input }) => {
         const existing = await db.getUserByEmail(input.email);
-        if (existing) {
+        const existingNickname = await db.getUserByNickname(input.nickname);
+        if (existing || existingNickname) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Email já cadastrado" });
         }
         
-        await db.createUser(input.email, input.password, input.name);
+        await db.createUser(input.email, input.nickname, input.password, input.name);
         const user = await db.getUserByEmail(input.email);
         
         const token = jwt.sign(
@@ -60,16 +62,16 @@ export const appRouter = router({
           { expiresIn: "30d" }
         );
         
-        return { token, user: { id: user!.id, email: user!.email, name: user!.name } };
+        return { token, user: { id: user!.id, email: user!.email, nickname: user!.nickname, name: user!.name, role: user!.role } };
       }),
 
     login: publicProcedure
       .input(z.object({
-        email: z.string().email(),
+        emailOrNickname: z.string(),
         password: z.string(),
       }))
       .mutation(async ({ input }) => {
-        const user = await db.getUserByEmail(input.email);
+        const user = await db.getUserByEmailOrNickname(input.emailOrNickname);
         if (!user) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Email ou senha incorretos" });
         }
@@ -85,7 +87,7 @@ export const appRouter = router({
           { expiresIn: "30d" }
         );
         
-        return { token, user: { id: user.id, email: user.email, name: user.name } };
+        return { token, user: { id: user.id, email: user.email, nickname: user.nickname, name: user.name, role: user.role } };
       }),
 
     me: protectedProcedure.query(({ ctx }) => ctx.user),
@@ -199,6 +201,58 @@ export const appRouter = router({
       .input(z.object({ topId: z.number() }))
       .query(async ({ input, ctx }) => {
         return await db.getTopEarnings(input.topId, ctx.user.id);
+      }),
+  }),
+
+  history: router({
+    // Listar semanas disponíveis
+    listWeeks: protectedProcedure
+      .query(async ({ ctx }) => {
+        const isAdmin = ctx.user.role === "admin";
+        return await db.getAvailableWeeks(isAdmin ? undefined : ctx.user.id);
+      }),
+
+    // Ranking semanal
+    weeklyRanking: protectedProcedure
+      .input(z.object({
+        weekStart: z.string(),
+        search: z.string().optional(),
+        orderBy: z.enum(["gross", "net", "days", "name"]).default("gross"),
+      }))
+      .query(async ({ input, ctx }) => {
+        const isAdmin = ctx.user.role === "admin";
+        return await db.getWeeklyRanking(
+          input.weekStart,
+          isAdmin ? undefined : ctx.user.id,
+          input.search,
+          input.orderBy
+        );
+      }),
+
+    // Detalhe de usuária na semana
+    weeklyUserDetail: protectedProcedure
+      .input(z.object({
+        weekStart: z.string(),
+        userId: z.number(),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin" && ctx.user.id !== input.userId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        return await db.getWeeklyUserDetail(input.weekStart, input.userId);
+      }),
+
+    // Alias para userWeekDetail (mesmo endpoint)
+    userWeekDetail: protectedProcedure
+      .input(z.object({
+        weekStart: z.string(),
+        userId: z.number(),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin" && ctx.user.id !== input.userId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        return await db.getWeeklyUserDetail(input.weekStart, input.userId);
       }),
   }),
 

@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS weekly_snapshots (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  userId INT NOT NULL,\n  weekStart VARCHAR(10) NOT NULL,\n  weekEnd VARCHAR(10) NOT NULL,\n  totalGross INT NOT NULL,\n  totalNet INT DEFAULT 0 NOT NULL,\n  daysWorked INT NOT NULL,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  INDEX idx_user_week (userId, weekStart)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute CREATE TABLE IF NOT EXISTS weekly_snapshots (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  userId INT NOT NULL,\n  weekStart VARCHAR(10) NOT NULL,\n  weekEnd VARCHAR(10) NOT NULL,\n  totalGross INT NOT NULL,\n  totalNet INT DEFAULT 0 NOT NULL,\n  daysWorked INT NOT NULL,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  INDEX idx_user_week (userId, weekStart)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 975
+}

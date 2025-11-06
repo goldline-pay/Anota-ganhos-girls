@@ -176,3 +176,62 @@
 - [x] Relatório deve mostrar valores por forma de pagamento
 - [x] Relatório deve mostrar totais por moeda (GBP, EUR, USD)
 - [x] Relatório deve ter detalhamento dia a dia da semana
+
+## Bugs Críticos Reportados
+- [ ] Conta admin completamente bugada e sem implementação
+- [ ] Página de histórico sem botões para acessar tops ativos ou passados
+- [x] Falta sistema de nickname para login (permitir login com nickname OU email)
+- [x] Definir nickname "admin" para a conta admin existente
+- [ ] Garantir que todas as funcionalidades realmente funcionem
+
+## Refatoração Completa do Histórico de Tops
+- [ ] Remover estrutura antiga "Top #1...#N - Ativo/Cancelado"
+- [ ] Criar sistema de snapshots semanais agregados por usuária
+- [ ] Endpoint de ranking semanal com todas as usuárias
+- [ ] Endpoint de detalhe por usuária/semana
+- [ ] Cálculo de variação vs semana anterior
+- [ ] Página History com tabela de ranking (colunas: #, Usuária, Bruto, Líquido, Dias, Variação, Detalhe)
+- [ ] Filtro por semana (dropdown)
+- [ ] Campo de busca por nome
+- [ ] Ordenação por: Bruto, Líquido, Visitas, Alfabética
+- [ ] Paginação (10/25/50)
+- [ ] Total geral da semana no rodapé
+- [ ] Página de detalhe /history/:weekId/:userId
+- [ ] Exportação CSV (semana inteira e por usuária)
+- [ ] Permissões: girl vê só dela, admin vê todas
+- [ ] Performance: cache de 15min para semanas passadas
+
+## Tarefas Urgentes
+- [x] Implementar backend completo de histórico semanal com ranking
+- [x] Criar página History nova com tabela de ranking
+- [x] Mudar saudação "Olá, [Nome]" para "Olá, [Nickname]"
+
+## Bugs Críticos
+- [x] Histórico mostrando dados de todas as usuárias para usuárias normais (corrigido - agora usa userId)
+- [x] Erro de query DATE_FORMAT no histórico (corrigido - usando Drizzle ORM)
+- [x] Permissões incorretas: girl deve ver só seus dados, admin vê tudo (corrigido)
+
+## Simplificação Solicitada
+- [x] Remover campo "Buscar usuária" da página de histórico
+- [x] Remover campo "Ordenar por" da página de histórico
+- [x] Deixar apenas seletor de semana
+
+## Página de Detalhes do Histórico
+- [x] Criar página simples de detalhes mostrando ganhos do dia
+- [x] Mostrar cada anotação (valor, moeda, duração, forma de pagamento)
+- [x] Totais por moeda
+
+## Bug
+- [x] Endpoint history.userWeekDetail não existe - criado
+
+## Bug
+- [x] Erro "Access denied" ao acessar detalhes do próprio histórico - corrigido ordem dos parâmetros na URL
+
+## Bugs Novos
+- [x] Corrigir erro "Cannot read properties of undefined (reading 'gbp')" na página HistoryDetail
+- [x] Corrigir erro "Access denied" quando usuária tenta acessar seus próprios detalhes semanais
+
+## Simulação de Dados
+- [x] Buscar ID do usuário Pedro
+- [x] Inserir ganhos aleatórios para 7 dias completos
+- [x] Criar snapshot semanal simulando encerramento de Top

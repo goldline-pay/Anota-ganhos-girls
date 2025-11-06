@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { users, earnings, tops, InsertUser, InsertEarning, InsertTop } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
@@ -19,7 +19,7 @@ export async function getDb() {
 
 // ============ USER FUNCTIONS ============
 
-export async function createUser(email: string, password: string, name: string) {
+export async function createUser(email: string, nickname: string, password: string, name: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
@@ -27,6 +27,7 @@ export async function createUser(email: string, password: string, name: string) 
   
   await db.insert(users).values({
     email,
+    nickname,
     passwordHash,
     name,
   });
@@ -39,6 +40,24 @@ export async function getUserByEmail(email: string) {
   if (!db) return undefined;
   
   const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByNickname(nickname: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(users).where(eq(users.nickname, nickname)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmailOrNickname(emailOrNickname: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(users)
+    .where(sql`${users.email} = ${emailOrNickname} OR ${users.nickname} = ${emailOrNickname}`)
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -180,4 +199,146 @@ export async function deleteEarningAdmin(id: number) {
   
   await db.delete(earnings).where(eq(earnings.id, id));
   return { success: true };
+}
+
+// ============ WEEKLY HISTORY FUNCTIONS ============
+
+export async function getAvailableWeeks(userId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Agregar semanas únicas dos ganhos
+  const query = userId
+    ? db.select({ weekStart: sql<string>`DISTINCT ${earnings.date}` }).from(earnings).where(eq(earnings.userId, userId)).orderBy(sql`${earnings.date} DESC`)
+    : db.select({ weekStart: sql<string>`DISTINCT ${earnings.date}` }).from(earnings).orderBy(sql`${earnings.date} DESC`);
+  
+  const result = await query;
+  return result || [];
+}
+
+export async function getWeeklyRanking(weekStart: string, userId?: number, search?: string, orderBy: string = "gross") {
+  const db = await getDb();
+  if (!db) return { rankings: [], totals: { gross: 0, net: 0 } };
+  
+  // Calcular início e fim da semana
+  const startDate = new Date(weekStart);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 7);
+  
+  const startStr = weekStart;
+  const endStr = endDate.toISOString().split('T')[0];
+  
+  // Agregar ganhos por usuária na semana
+  let query = sql`
+    SELECT 
+      u.id as userId,
+      u.name,
+      u.nickname,
+      SUM(e.amount) as totalGross,
+      0 as totalNet,
+      COUNT(DISTINCT e.date) as daysWorked
+    FROM users u
+    LEFT JOIN earnings e ON u.id = e.userId AND e.date >= ${startStr} AND e.date < ${endStr}
+  `;
+  
+  if (userId) {
+    query = sql`${query} WHERE u.id = ${userId}`;
+  }
+  
+  if (search) {
+    const searchPattern = `%${search}%`;
+    query = userId 
+      ? sql`${query} AND (u.name LIKE ${searchPattern} OR u.nickname LIKE ${searchPattern})`
+      : sql`${query} WHERE (u.name LIKE ${searchPattern} OR u.nickname LIKE ${searchPattern})`;
+  }
+  
+  query = sql`${query} GROUP BY u.id, u.name, u.nickname HAVING totalGross > 0`;
+  
+  // Ordenação
+  if (orderBy === "gross") {
+    query = sql`${query} ORDER BY totalGross DESC`;
+  } else if (orderBy === "days") {
+    query = sql`${query} ORDER BY daysWorked DESC`;
+  } else if (orderBy === "name") {
+    query = sql`${query} ORDER BY u.name ASC`;
+  }
+  
+  const result: any = await db.execute(query);
+  const rankings = result[0] || [];
+  
+  // Calcular totais
+  const totals = rankings.reduce((acc: any, r: any) => ({
+    gross: acc.gross + (r.totalGross || 0),
+    net: acc.net + (r.totalNet || 0),
+  }), { gross: 0, net: 0 });
+  
+  return { rankings, totals, weekStart: startStr, weekEnd: endStr };
+}
+
+export async function getWeeklyUserDetail(weekStart: string, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const startDate = new Date(weekStart);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 7);
+  
+  const startStr = weekStart;
+  const endStr = endDate.toISOString().split('T')[0];
+  
+  // Buscar todos os ganhos da usuária na semana
+  const earningsResult = await db
+    .select()
+    .from(earnings)
+    .where(and(
+      eq(earnings.userId, userId),
+      sql`${earnings.date} >= ${startStr}`,
+      sql`${earnings.date} < ${endStr}`
+    ))
+    .orderBy(earnings.date);
+  
+  // Buscar dados da usuária
+  const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const user = userResult[0];
+  
+  if (!user) return null;
+  
+  // Agregar por dia e por moeda
+  const byDay: any = {};
+  let totalGross = 0;
+  let totalGbp = 0;
+  let totalEur = 0;
+  let totalUsd = 0;
+  
+  earningsResult.forEach((e: any) => {
+    if (!byDay[e.date]) {
+      byDay[e.date] = { date: e.date, earnings: [], total: 0 };
+    }
+    byDay[e.date].earnings.push(e);
+    byDay[e.date].total += e.amount;
+    totalGross += e.amount;
+    
+    // Agregar por moeda
+    if (e.currency === 'GBP') totalGbp += e.amount;
+    else if (e.currency === 'EUR') totalEur += e.amount;
+    else if (e.currency === 'USD') totalUsd += e.amount;
+  });
+  
+  const days = Object.values(byDay);
+  
+  return {
+    user: { id: user.id, name: user.name, nickname: user.nickname },
+    userName: user.nickname || user.name,
+    weekStart: startStr,
+    weekEnd: endStr,
+    totalGross,
+    daysWorked: days.length,
+    days,
+    earnings: earningsResult,
+    totals: {
+      gbp: totalGbp,
+      eur: totalEur,
+      usd: totalUsd,
+    },
+  };
 }

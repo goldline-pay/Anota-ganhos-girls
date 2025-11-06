@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, email, nickname, name FROM users WHERE nickname = 'pedro' OR email LIKE '%pedro%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute SELECT id, email, nickname, name FROM users WHERE nickname = 'pedro' OR email LIKE '%pedro%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "30001",
+      "email": "pedro@gmail.com",
+      "nickname": "pedro",
+      "name": "Pedro"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tnickname\tname\n30001\tpedro@gmail.com\tpedro\tPedro\n",
+  "stderr": "",
+  "execution_time_ms": 683
+}

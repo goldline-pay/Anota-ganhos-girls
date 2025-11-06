@@ -1,0 +1,16 @@
+{
+  "query": "SHOW TABLES LIKE '%snapshot%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute SHOW TABLES LIKE '%snapshot%';",
+  "rows": [
+    {
+      "Tables_in_dvivK8BojaycCXiNf9BuUs (%snapshot%)": "weekSnapshots"
+    },
+    {
+      "Tables_in_dvivK8BojaycCXiNf9BuUs (%snapshot%)": "weekly_snapshots"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_dvivK8BojaycCXiNf9BuUs (%snapshot%)\nweekSnapshots\nweekly_snapshots\n",
+  "stderr": "",
+  "execution_time_ms": 47
+}
