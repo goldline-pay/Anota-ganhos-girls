@@ -133,3 +133,13 @@
 
 ## Bugs
 - [x] Corrigir erro na query da tabela earnings - tabela criada com sucesso
+
+## Redesign Completo
+- [x] Gerar imagens sensuais para background e elementos visuais
+- [x] Implementar botão "Iniciar Top de 7 Dias"
+- [x] Implementar botão "Desativar Top"
+- [x] Mostrar status do Top ativo no dashboard
+- [x] Criar página de Histórico com tops anteriores
+- [x] Design feminino e sensual com cores adequadas
+- [x] Relatório semanal detalhado por dia
+- [x] Resumo consolidado por forma de pagamento

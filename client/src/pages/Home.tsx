@@ -7,17 +7,16 @@ import { APP_TITLE } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { Link } from "wouter";
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
   const [isLogin, setIsLogin] = useState(true);
   
-  // Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   
-  // Earnings form
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [duration, setDuration] = useState("");
@@ -50,6 +49,10 @@ export default function Home() {
     },
   });
 
+  const activeTopQuery = trpc.tops.getActive.useQuery(undefined, {
+    enabled: !!token,
+  });
+
   const earningsQuery = trpc.earnings.list.useQuery(undefined, {
     enabled: !!token,
   });
@@ -71,6 +74,26 @@ export default function Home() {
     onSuccess: () => {
       toast.success("Ganho removido!");
       earningsQuery.refetch();
+    },
+  });
+
+  const startTopMutation = trpc.tops.start.useMutation({
+    onSuccess: () => {
+      toast.success("Top de 7 Dias iniciado!");
+      activeTopQuery.refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deactivateTopMutation = trpc.tops.deactivate.useMutation({
+    onSuccess: () => {
+      toast.success("Top desativado!");
+      activeTopQuery.refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
     },
   });
 
@@ -110,43 +133,60 @@ export default function Home() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card className="p-6 max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-6 text-center">💰 {APP_TITLE}</h1>
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{
+          backgroundImage: "url(/bg-feminine.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <Card className="p-8 max-w-md w-full relative z-10 bg-white/95 backdrop-blur shadow-2xl border-pink-200">
+          <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+            💰 {APP_TITLE}
+          </h1>
           
           <form onSubmit={handleAuth} className="space-y-4">
             {!isLogin && (
               <div>
-                <Label>Nome</Label>
+                <Label className="text-gray-700">Nome</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Seu nome"
+                  className="border-pink-200 focus:border-pink-400"
                 />
               </div>
             )}
             
             <div>
-              <Label>Email</Label>
+              <Label className="text-gray-700">Email</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
+                className="border-pink-200 focus:border-pink-400"
               />
             </div>
             
             <div>
-              <Label>Senha</Label>
+              <Label className="text-gray-700">Senha</Label>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
+                className="border-pink-200 focus:border-pink-400"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loginMutation.isPending || registerMutation.isPending}>
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700" 
+              disabled={loginMutation.isPending || registerMutation.isPending}
+            >
               {loginMutation.isPending || registerMutation.isPending
                 ? "⏳ Processando..."
                 : isLogin
@@ -157,7 +197,7 @@ export default function Home() {
 
           <Button
             variant="ghost"
-            className="w-full mt-4"
+            className="w-full mt-4 text-pink-600 hover:text-pink-700 hover:bg-pink-50"
             onClick={() => setIsLogin(!isLogin)}
           >
             {isLogin ? "Não tem conta? Criar conta" : "Já tem conta? Entrar"}
@@ -173,34 +213,91 @@ export default function Home() {
     return acc;
   }, {} as Record<string, number>);
 
+  const activeTop = activeTopQuery.data;
+  const hasActiveTop = !!activeTop;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div 
+      className="min-h-screen p-4"
+      style={{
+        backgroundImage: "url(/bg-feminine.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
+      
+      <div className="max-w-4xl mx-auto relative z-10">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">💰 {APP_TITLE}</h1>
-          <Button variant="outline" size="sm" onClick={logout}>
-            Sair
-          </Button>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+            💰 {APP_TITLE}
+          </h1>
+          <div className="flex gap-2">
+            <Link href="/history">
+              <Button variant="outline" size="sm" className="border-pink-300 text-pink-700 hover:bg-pink-50">
+                📊 Histórico
+              </Button>
+            </Link>
+            <Button variant="outline" size="sm" onClick={logout} className="border-gray-300">
+              Sair
+            </Button>
+          </div>
         </div>
 
-        <Card className="p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Adicionar Ganho</h2>
+        {/* Status do Top */}
+        <Card className="p-6 mb-6 bg-white/95 backdrop-blur shadow-xl border-pink-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Status do Top</h2>
+              {hasActiveTop ? (
+                <p className="text-green-600 font-medium mt-1">✅ Top de 7 Dias ATIVO</p>
+              ) : (
+                <p className="text-gray-500 mt-1">Nenhum Top ativo no momento</p>
+              )}
+            </div>
+            <div>
+              {hasActiveTop ? (
+                <Button
+                  variant="destructive"
+                  onClick={() => deactivateTopMutation.mutate()}
+                  disabled={deactivateTopMutation.isPending}
+                >
+                  {deactivateTopMutation.isPending ? "Desativando..." : "Desativar Top"}
+                </Button>
+              ) : (
+                <Button
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                  onClick={() => startTopMutation.mutate()}
+                  disabled={startTopMutation.isPending}
+                >
+                  {startTopMutation.isPending ? "Iniciando..." : "Iniciar Top de 7 Dias"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Formulário de Ganhos */}
+        <Card className="p-6 mb-6 bg-white/95 backdrop-blur shadow-xl border-pink-200">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">Adicionar Ganho</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Valor</Label>
+                <Label className="text-gray-700">Valor</Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="150.50"
+                  className="border-pink-200 focus:border-pink-400"
                 />
               </div>
               <div>
-                <Label>Moeda</Label>
+                <Label className="text-gray-700">Moeda</Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-pink-200">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,18 +311,19 @@ export default function Home() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Duração (min)</Label>
+                <Label className="text-gray-700">Duração (min)</Label>
                 <Input
                   type="number"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                   placeholder="60"
+                  className="border-pink-200 focus:border-pink-400"
                 />
               </div>
               <div>
-                <Label>Forma de Pagamento</Label>
+                <Label className="text-gray-700">Forma de Pagamento</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-pink-200">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -240,40 +338,46 @@ export default function Home() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700" 
+              disabled={createMutation.isPending}
+            >
               {createMutation.isPending ? "Adicionando..." : "Adicionar Ganho"}
             </Button>
           </form>
         </Card>
 
-        <Card className="p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Totais</h2>
+        {/* Totais */}
+        <Card className="p-6 mb-6 bg-white/95 backdrop-blur shadow-xl border-pink-200">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">Totais</h2>
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">GBP</p>
-              <p className="text-2xl font-bold">£{(totals.GBP || 0).toFixed(2)}</p>
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg">
+              <p className="text-sm text-gray-600 font-medium">GBP</p>
+              <p className="text-3xl font-bold text-pink-600">£{(totals.GBP || 0).toFixed(2)}</p>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">EUR</p>
-              <p className="text-2xl font-bold">€{(totals.EUR || 0).toFixed(2)}</p>
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg">
+              <p className="text-sm text-gray-600 font-medium">EUR</p>
+              <p className="text-3xl font-bold text-purple-600">€{(totals.EUR || 0).toFixed(2)}</p>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">USD</p>
-              <p className="text-2xl font-bold">${(totals.USD || 0).toFixed(2)}</p>
+            <div className="text-center p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg">
+              <p className="text-sm text-gray-600 font-medium">USD</p>
+              <p className="text-3xl font-bold text-pink-600">${(totals.USD || 0).toFixed(2)}</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Histórico</h2>
+        {/* Histórico */}
+        <Card className="p-6 bg-white/95 backdrop-blur shadow-xl border-pink-200">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">Ganhos Recentes</h2>
           {earnings.length === 0 ? (
-            <p className="text-center text-gray-500">Nenhum ganho registrado ainda</p>
+            <p className="text-center text-gray-500 py-8">Nenhum ganho registrado ainda</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-96 overflow-y-auto">
               {earnings.map((e) => (
-                <div key={e.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <div key={e.id} className="flex justify-between items-center p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-shadow">
                   <div>
-                    <p className="font-semibold">
+                    <p className="font-semibold text-lg text-gray-800">
                       {e.currency === "GBP" && "£"}
                       {e.currency === "EUR" && "€"}
                       {e.currency === "USD" && "$"}
@@ -288,6 +392,7 @@ export default function Home() {
                     size="sm"
                     onClick={() => deleteMutation.mutate({ id: e.id })}
                     disabled={deleteMutation.isPending}
+                    className="bg-red-500 hover:bg-red-600"
                   >
                     Remover
                   </Button>

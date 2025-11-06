@@ -27,6 +27,14 @@ const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
   }
 });
 
+// Procedure admin que requer role admin
+const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+  }
+  return next({ ctx });
+});
+
 export const appRouter = router({
   system: systemRouter,
   
@@ -113,9 +121,61 @@ export const appRouter = router({
 
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.deleteEarning(input.id);
+      .mutation(async ({ input, ctx }) => {
+        await db.deleteEarning(input.id, ctx.user.id);
         return { success: true };
+      }),
+  }),
+
+  tops: router({
+    // Obter top ativo do usuário
+    getActive: protectedProcedure
+      .query(async ({ ctx }) => {
+        return await db.getActiveTop(ctx.user.id);
+      }),
+
+    // Iniciar novo top
+    start: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const activeTop = await db.getActiveTop(ctx.user.id);
+        if (activeTop) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Já existe um Top ativo" });
+        }
+        return await db.createTop(ctx.user.id);
+      }),
+
+    // Desativar top
+    deactivate: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const activeTop = await db.getActiveTop(ctx.user.id);
+        if (!activeTop) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Nenhum Top ativo" });
+        }
+        return await db.deactivateTop(activeTop.id);
+      }),
+
+    // Listar histórico de tops
+    history: protectedProcedure
+      .query(async ({ ctx }) => {
+        return await db.getTopHistory(ctx.user.id);
+      }),
+
+    // Obter detalhes de um top específico
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const top = await db.getTopById(input.id);
+        if (!top || top.userId !== ctx.user.id) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Top não encontrado" });
+        }
+        return top;
+      }),
+
+    // Obter ganhos de um top específico
+    getEarnings: protectedProcedure
+      .input(z.object({ topId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return await db.getTopEarnings(input.topId, ctx.user.id);
       }),
   }),
 });

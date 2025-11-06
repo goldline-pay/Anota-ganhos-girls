@@ -22,7 +22,19 @@ export const earnings = mysqlTable("earnings", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// Tabela de Tops (períodos de 7 dias)
+export const tops = mysqlTable("tops", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate"),
+  status: mysqlEnum("status", ["active", "completed", "cancelled"]).default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Earning = typeof earnings.$inferSelect;
 export type InsertEarning = typeof earnings.$inferInsert;
+export type Top = typeof tops.$inferSelect;
+export type InsertTop = typeof tops.$inferInsert;

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { users, earnings, InsertUser, InsertEarning } from "../drizzle/schema";
+import { users, earnings, tops, InsertUser, InsertEarning, InsertTop } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -63,9 +63,75 @@ export async function getUserEarnings(userId: number) {
   return await db.select().from(earnings).where(eq(earnings.userId, userId));
 }
 
-export async function deleteEarning(id: number) {
+export async function deleteEarning(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   await db.delete(earnings).where(eq(earnings.id, id));
+}
+
+// ============ TOPS FUNCTIONS ============
+
+export async function createTop(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const startDate = new Date();
+  
+  const result = await db.insert(tops).values({
+    userId,
+    startDate,
+    status: "active",
+  });
+  
+  return { success: true, id: result[0].insertId };
+}
+
+export async function getActiveTop(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(tops)
+    .where(eq(tops.userId, userId))
+    .limit(1);
+  
+  return result.find(t => t.status === "active") || null;
+}
+
+export async function deactivateTop(topId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(tops)
+    .set({ status: "cancelled", endDate: new Date() })
+    .where(eq(tops.id, topId));
+  
+  return { success: true };
+}
+
+export async function getTopHistory(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(tops)
+    .where(eq(tops.userId, userId));
+}
+
+export async function getTopById(topId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(tops).where(eq(tops.id, topId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getTopEarnings(topId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const top = await getTopById(topId);
+  if (!top || top.userId !== userId) return [];
+  
+  return await db.select().from(earnings)
+    .where(eq(earnings.userId, userId));
 }
