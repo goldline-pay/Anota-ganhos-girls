@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function Admin() {
   const [editingEarning, setEditingEarning] = useState<any>(null);
@@ -71,6 +72,27 @@ export default function Admin() {
     return user ? user.name : `User #${userId}`;
   };
 
+  // Processar dados para o gráfico
+  const chartData = useMemo(() => {
+    const dailyTotals: Record<string, number> = {};
+    
+    earnings.forEach((e) => {
+      const date = e.date;
+      if (!dailyTotals[date]) {
+        dailyTotals[date] = 0;
+      }
+      dailyTotals[date] += e.amount / 100;
+    });
+
+    return Object.entries(dailyTotals)
+      .map(([date, total]) => ({
+        date,
+        total: parseFloat(total.toFixed(2)),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30); // Últimos 30 dias
+  }, [earnings]);
+
   return (
     <div 
       className="min-h-screen p-4"
@@ -94,6 +116,49 @@ export default function Admin() {
             </Button>
           </Link>
         </div>
+
+        {/* Gráfico de Desempenho */}
+        <Card className="p-6 mb-6 bg-white/95 backdrop-blur shadow-xl border-pink-200">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">📊 Ganhos Totais por Dia (Últimos 30 dias)</h2>
+          {chartData.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">Nenhum dado disponível</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`€${value.toFixed(2)}`, 'Total']}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="total" 
+                  fill="url(#colorGradient)" 
+                  radius={[8, 8, 0, 0]}
+                  name="Ganhos Totais (€)"
+                />
+                <defs>
+                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ec4899" stopOpacity={0.8}/>
+                    <stop offset="100%" stopColor="#9333ea" stopOpacity={0.8}/>
+                  </linearGradient>
+                </defs>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
 
         {/* Usuárias */}
         <Card className="p-6 mb-6 bg-white/95 backdrop-blur shadow-xl border-pink-200">

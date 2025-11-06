@@ -150,3 +150,8 @@
 - [x] Criar painel admin para visualizar todas as contas
 - [x] Permitir admin editar ganhos de qualquer usuária
 - [x] Mostrar lista de todas as usuárias no painel admin
+
+## Gráfico de Desempenho
+- [x] Adicionar gráfico de ganhos totais por dia no painel admin
+- [x] Usar biblioteca de gráficos (Recharts)
+- [x] Mostrar totais consolidados por dia
