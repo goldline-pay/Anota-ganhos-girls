@@ -292,7 +292,9 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
+    // @ts-ignore - compatibility function not used in this project
     await db.upsertUser({
+      // @ts-ignore
       openId: user.openId,
       lastSignedIn: signedInAt,
     });

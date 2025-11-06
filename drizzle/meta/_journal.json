@@ -1,5 +1,27 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1762405366578,
+      "tag": "0000_silent_toxin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1762405489083,
+      "tag": "0001_ancient_the_hood",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1762405574394,
+      "tag": "0002_needy_captain_cross",
+      "breakpoints": true
+    }
+  ]
 }
