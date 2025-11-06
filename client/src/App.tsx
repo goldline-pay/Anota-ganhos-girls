@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import History from "./pages/History";
 import Admin from "./pages/Admin";
+import TopReport from "./pages/TopReport";
 
 function Router() {
   return (
@@ -14,6 +15,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/history"} component={History} />
       <Route path={"/admin"} component={Admin} />
+      <Route path={"/top/:id"} component={TopReport} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

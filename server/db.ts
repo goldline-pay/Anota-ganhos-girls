@@ -98,12 +98,12 @@ export async function getActiveTop(userId: number) {
   return result.find(t => t.status === "active") || null;
 }
 
-export async function deactivateTop(topId: number) {
+export async function completeTop(topId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   await db.update(tops)
-    .set({ status: "cancelled", endDate: new Date() })
+    .set({ status: "completed", endDate: new Date() })
     .where(eq(tops.id, topId));
   
   return { success: true };

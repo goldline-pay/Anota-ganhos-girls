@@ -55,16 +55,23 @@ export default function History() {
                       </p>
                     )}
                   </div>
-                  <div>
+                  <div className="flex flex-col gap-2 items-end">
                     {top.status === "active" && (
                       <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                         ✅ Ativo
                       </span>
                     )}
                     {top.status === "completed" && (
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                        ✓ Concluído
-                      </span>
+                      <>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                          ✓ Concluído
+                        </span>
+                        <Link href={`/top/${top.id}`}>
+                          <Button size="sm" className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700">
+                            📊 Ver Relatório
+                          </Button>
+                        </Link>
+                      </>
                     )}
                     {top.status === "cancelled" && (
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">

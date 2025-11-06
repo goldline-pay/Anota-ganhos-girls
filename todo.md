@@ -166,3 +166,13 @@
 
 ## Bug
 - [x] Link Admin não está aparecendo no dashboard para conta admin - corrigido salvando role no localStorage
+
+## Novas Funcionalidades e Correções
+- [x] Adicionar toggle "olhinho" para mostrar/ocultar senha
+- [x] Corrigir bug ao editar valores
+- [x] Reimplementar sistema de Top: duração de 7 dias (desativa automaticamente às 00:00 do 7º dia)
+- [x] Permitir encerrar Top manualmente antes dos 7 dias
+- [x] Gerar relatório completo ao encerrar Top (automático ou manual)
+- [x] Relatório deve mostrar valores por forma de pagamento
+- [x] Relatório deve mostrar totais por moeda (GBP, EUR, USD)
+- [x] Relatório deve ter detalhamento dia a dia da semana

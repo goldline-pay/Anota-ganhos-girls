@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { APP_TITLE } from "@/const";
-import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
+import { APP_TITLE } from "@/const";
+import { trpc } from "@/lib/trpc";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export default function Home() {
   const [editDate, setEditDate] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
@@ -120,10 +122,12 @@ export default function Home() {
     },
   });
 
-  const deactivateTopMutation = trpc.tops.deactivate.useMutation({
-    onSuccess: () => {
-      toast.success("Top desativado!");
+  const completeTopMutation = trpc.tops.complete.useMutation({
+    onSuccess: (data) => {
+      toast.success("Top encerrado! Gerando relatório...");
       activeTopQuery.refetch();
+      // Redirecionar para página de relatório
+      window.location.href = `/top/${data.topId}`;
     },
     onError: (error: any) => {
       toast.error(error.message);
@@ -160,7 +164,7 @@ export default function Home() {
 
   const handleEdit = (earning: any) => {
     setEditingEarning(earning);
-    setEditAmount((earning.amount / 100).toString());
+    setEditAmount(earning.amount.toString());
     setEditCurrency(earning.currency);
     setEditDuration(earning.duration.toString());
     setEditPaymentMethod(earning.paymentMethod);
@@ -235,13 +239,22 @@ export default function Home() {
             
             <div>
               <Label className="text-gray-700">Senha</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                className="border-pink-200 focus:border-pink-400"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="border-pink-200 focus:border-pink-400 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <Button 
@@ -336,10 +349,10 @@ export default function Home() {
               {hasActiveTop ? (
                 <Button
                   variant="destructive"
-                  onClick={() => deactivateTopMutation.mutate()}
-                  disabled={deactivateTopMutation.isPending}
+                  onClick={() => completeTopMutation.mutate()}
+                  disabled={completeTopMutation.isPending}
                 >
-                  {deactivateTopMutation.isPending ? "Desativando..." : "Desativar Top"}
+                  {completeTopMutation.isPending ? "Encerrando..." : "Encerrar Top"}
                 </Button>
               ) : (
                 <Button

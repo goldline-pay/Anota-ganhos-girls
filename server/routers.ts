@@ -164,14 +164,17 @@ export const appRouter = router({
         return await db.createTop(ctx.user.id);
       }),
 
-    // Desativar top
-    deactivate: protectedProcedure
+    // Encerrar top manualmente
+    complete: protectedProcedure
       .mutation(async ({ ctx }) => {
         const activeTop = await db.getActiveTop(ctx.user.id);
         if (!activeTop) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Nenhum Top ativo" });
         }
-        return await db.deactivateTop(activeTop.id);
+        // Encerrar o top
+        await db.completeTop(activeTop.id);
+        // Retornar ID do top para redirecionar ao relatório
+        return { topId: activeTop.id };
       }),
 
     // Listar histórico de tops
