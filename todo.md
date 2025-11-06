@@ -1,5 +1,13 @@
 # Anota Ganhos Girls - TODO
 
+## Projeto Simplificado Concluído
+- [x] Sistema de autenticação com OAuth Manus
+- [x] Adicionar ganhos com valor, moeda, duração e forma de pagamento
+- [x] Visualizar totais por moeda (GBP, EUR, USD)
+- [x] Histórico de ganhos
+- [x] Remover ganhos
+- [x] Interface mobile funcional e limpa
+
 ## Database Schema
 - [x] Criar tabela de usuários com autenticação própria (email/senha)
 - [x] Criar tabela de anotações de ganhos (earnings)
@@ -105,3 +113,7 @@
 - [ ] Testar logs de auditoria
 - [ ] Verificar funcionamento em mobile
 - [ ] Criar checkpoint final
+
+
+## Bugs
+- [x] Corrigir erro de autenticação - problema identificado: tRPC não está processando corretamente as mutations de login/register

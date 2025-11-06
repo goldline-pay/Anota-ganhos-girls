@@ -1,0 +1,20 @@
+{
+  "query": "SELECT * FROM users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute SELECT * FROM users;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Admin",
+      "email": "admin@anotaganhos.com",
+      "role": "admin",
+      "createdAt": "2025-11-06 05:06:48",
+      "updatedAt": "2025-11-06 05:06:48",
+      "lastSignedIn": "2025-11-06 05:06:48",
+      "passwordHash": "$2b$10$Ln3qDzhOvVTVmZMEeRK1qekwhmILy1yYA8I2Rh.eqaqO5pgg5FftC"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tcreatedAt\tupdatedAt\tlastSignedIn\tpasswordHash\n1\tAdmin\tadmin@anotaganhos.com\tadmin\t2025-11-06 05:06:48\t2025-11-06 05:06:48\t2025-11-06 05:06:48\t$2b$10$Ln3qDzhOvVTVmZMEeRK1qekwhmILy1yYA8I2Rh.eqaqO5pgg5FftC\n",
+  "stderr": "",
+  "execution_time_ms": 1146
+}

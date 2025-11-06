@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, email, passwordHash, role FROM users WHERE email = 'admin@anotaganhos.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute SELECT id, email, passwordHash, role FROM users WHERE email = 'admin@anotaganhos.com';",
+  "rows": [
+    {
+      "id": "1",
+      "email": "admin@anotaganhos.com",
+      "passwordHash": "$2b$10$Ln3qDzhOvVTVmZMEeRK1qekwhmILy1yYA8I2Rh.eqaqO5pgg5FftC",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tpasswordHash\trole\n1\tadmin@anotaganhos.com\t$2b$10$Ln3qDzhOvVTVmZMEeRK1qekwhmILy1yYA8I2Rh.eqaqO5pgg5FftC\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 138
+}
