@@ -124,3 +124,12 @@
 - [x] Criar página de login
 - [x] Armazenar senhas com hash bcrypt
 - [x] Usar JWT para sessões
+
+## Admin Features
+- [x] Criar conta admin com email admin@anotaganhos.com
+- [ ] Implementar endpoint para admin editar ganhos de qualquer usuária
+- [ ] Implementar interface admin para visualizar todas as usuárias
+- [ ] Implementar interface admin para editar ganhos
+
+## Bugs
+- [x] Corrigir erro na query da tabela earnings - tabela criada com sucesso

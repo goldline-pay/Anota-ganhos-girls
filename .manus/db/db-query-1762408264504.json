@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS earnings (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  userId INT NOT NULL,\n  amount INT NOT NULL,\n  currency VARCHAR(3) NOT NULL,\n  duration INT NOT NULL,\n  paymentMethod VARCHAR(50) NOT NULL,\n  date VARCHAR(10) NOT NULL,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cyN2zJdjG9MXxwi.03102972c9b9 --database dvivK8BojaycCXiNf9BuUs --execute CREATE TABLE IF NOT EXISTS earnings (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  userId INT NOT NULL,\n  amount INT NOT NULL,\n  currency VARCHAR(3) NOT NULL,\n  duration INT NOT NULL,\n  paymentMethod VARCHAR(50) NOT NULL,\n  date VARCHAR(10) NOT NULL,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 269
+}
